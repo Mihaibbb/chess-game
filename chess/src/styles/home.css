@@ -1,70 +1,24 @@
-*,
-*::before,
-*::after
-{
-    box-sizing: border-box;
-}
-
 body 
 {
     overflow-x: hidden;
     margin: 0;
     padding: 0;
+    height: 100%;
     min-height: 100vh;
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #c8dbeb;
+    background: rgb(44, 47, 49);
 }
-
-.board 
-{
-    
-    
-    border-radius: 2rem;
-   
-}
-
-.row 
-{
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.square 
+.game 
 {
     width: 100%;
     height: 100%;
-    background-color: rgb(81, 140, 192);
-    display: flex;
+    
+    display: grid;
     justify-content: center;
     align-items: center;
-    
-}
-
-.square.even
-{
-    background-color: rgb(44, 47, 49);
-}
-
-.icon-container
-{
-    
-}
-
-
-.piece
-{
-    font-size: 50px;
-    stroke-width: 17.5px;
-    cursor: grab;
-}
-
-.piece:active 
-{
-    cursor: grabbing;
+    grid-template-columns: .5fr 1fr .5fr;
 }
 
