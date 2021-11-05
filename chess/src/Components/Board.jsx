@@ -9,6 +9,8 @@ import '../styles/board.css';
 
 const HEIGHT = 85 * window.innerHeight / 100;
 const SQUARES = 64;
+const ROWS = 8;
+const COLUMNS = 8;
 
 export default function Board({ color }) {
 
@@ -1005,6 +1007,7 @@ export default function Board({ color }) {
     }
 
     const checkCheck = (kingSquare, kCode, isFromCheckMate = false) => {
+
         console.log('lalalalaalaallapgdkkdfpgogjodjfgjdp', previewVirtualBoard.current, kingSquare);
         console.log(kingSquare);
         let currBoard = [];
@@ -1048,6 +1051,51 @@ export default function Board({ color }) {
         previewVirtualBoard.current = oldBoard;
 
         return check;
+    };
+
+    const checkCheckOptimised = (kingSquare, kCode, isFromCheckMate = false) => {
+        // Getting coords
+        const currentX = parseInt(kingSquare / 8);
+        const currentY = kingSquare % 8;
+   
+        // Checking same row
+        
+        for (let i = 0; i < COLUMNS; i++) {
+            if (i === currentY) continue;
+            const sameRowSquare = previewVirtualBoard.current[currentX][i];
+            if (!checkOppositeColor(sameRowSquare, kingSquare)) continue;
+            if (Math.abs(sameRowSquare) !== 2 && Math.abs(sameRowSquare) !== 5) continue;
+
+            const newCoords = currentX * 8 + i;
+            const squareMoves = getPossibleMoves(sameRowSquare, newCoords, previewVirtualBoard.current);
+            
+
+            squareMoves.forEach(move => {
+                const newX = parseInt(move / 8);
+                const newY = move % 8;
+                const squareMovePiece = previewVirtualBoard.current[newX][newY];
+                if (squareMovePiece === kCode) return true;
+            });
+        }
+
+        for (let i = 0; i < ROWS; i++) {
+            if (i === currentX) continue;
+            const sameColumnSquare = previewVirtualBoard.current[i][currentY];
+            if (!checkOppositeColor(sameColumnSquare, kingSquare)) continue;
+            if (Math.abs(sameColumnSquare) !== 2 && Math.abs(sameColumnSquare) !== 5) continue;
+            const newCoords = i * 8 + currentY;
+            const squareMoves = getPossibleMoves(sameColumnSquare, newCoords, previewVirtualBoard.current);
+        
+            squareMoves.forEach(move => {
+                const newX = parseInt(move / 8);
+                const newY = move % 8;
+                const squareMovePiece = previewVirtualBoard.current[newX][newY];
+                if (squareMovePiece === kCode) return true;
+            });
+        }
+
+        
+        
     };
 
     // Checking the check-mate
