@@ -5,6 +5,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import pieceMoveSound from "../sounds/piece-move.wav";
 import pieceCaptureSound from "../sounds/piece-taken.mp3";
 
+// Ok
+
 import '../styles/board.css';
 
 const HEIGHT = 85 * window.innerHeight / 100;
