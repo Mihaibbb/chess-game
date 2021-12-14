@@ -108,6 +108,40 @@
     stroke-width: 10;
 }
 
+.icon-container 
+{
+    --element-left: 0px;
+    --element-top: 0px;
+    
+}
+
+
+
+.icon-container.opponent 
+{
+    z-index: 3;
+    
+    
+    transition: all 650ms ease-in-out;
+    
+   
+}
+
+.icon-container.opponent.changed-move 
+{
+    position: absolute;
+    /* top: var(--element-top);
+    left: var(--element-left); */
+    transform: translateX(var(--element-left)) translateY(var(--element-top));
+    
+}
+
+/* .icon-container.opponent:hover 
+{
+    top: 200px;
+    left: 200px;
+} */
+
 .letters
 {
     display: flex;

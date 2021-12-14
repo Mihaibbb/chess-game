@@ -3,9 +3,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import '../styles/prev-button.css';
 
-export default function PreviousButton({icon}) {
+export default function PreviousButton({icon, classDiv, clickButton}) {
     return (
-        <div className="prev-button">
+        <div className={`button ${classDiv}`} onClick={(e) => clickButton(e)}>
             <FontAwesomeIcon 
                 color="#fff" 
                 icon={icon}

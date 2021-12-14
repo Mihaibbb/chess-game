@@ -5,16 +5,15 @@ import cloneDeep from 'lodash/cloneDeep';
 import pieceMoveSound from "../sounds/piece-move.wav";
 import pieceCaptureSound from "../sounds/piece-taken.mp3";
 
-// Ok
-
 import '../styles/board.css';
+
 
 const HEIGHT = 85 * window.innerHeight / 100;
 const SQUARES = 64;
 const ROWS = 8;
 const COLUMNS = 8;
 
-export default function Board({ color }) {
+export default function Board({ color, prevButtons, random }) {
 
     const setColor = color;
 
@@ -55,12 +54,13 @@ export default function Board({ color }) {
     const [previewMoves, setPreviewMoves] = useState([]);
     const [gameRunning, setGameRunning] = useState(true);
     const [pawnTransform, setPawnTransform] = useState(null);
-    const [isPlayingPiece, setIsPlayingPiece] = useState(false);
-    const [prevMoves, setPrevMoves] = useState([]);
+    const [prevMoves, setPrevMoves] = useState(localStorage.getItem("prev-moves") !== null ? JSON.parse(localStorage.getItem("prev-moves")) : []);
+    const [nextMoves, setNextMoves] = useState(localStorage.getItem("next-moves") !== null ? JSON.parse(localStorage.getItem("next-moves")) : []);
  
     const previewVirtualBoard = useRef(virtualBoard);
     const squareElements = useRef(null);
     const currSquareElement = useRef([]);
+    const oldChildren = useRef([]);
     const kingsMoved = useRef({"6": false, "-6": false});
     const rookMoved = useRef({
         "2": {
@@ -99,10 +99,68 @@ export default function Board({ color }) {
     const squareHeight = parseInt(boardRef.current?.style.height) / 8;
 
     console.log(squareWidth, squareHeight);
-
-
     const player2Color = virtualBoard[0][0] > 0 ? "white" : "black";
     const player1Color = player2Color === "white" ? "black" : "white";
+
+    // Checking everytime prev/next button is pressed
+    
+    useEffect(() => {
+       
+        if (!prevButtons) return;
+        if (prevButtons.classList.contains('prev-button') && prevMoves.length === 0) return;
+        if (prevButtons.classList.contains('next-button') && nextMoves.length === 0) return;
+        
+        const lastMove = prevButtons.classList.contains('prev-button') ? prevMoves[prevMoves.length - 1] : nextMoves[nextMoves.length - 1];
+        console.log(prevButtons, prevMoves, lastMove.pieceCode);
+        const currBoard = cloneDeep(newVirtualBoard);
+        const oldX = parseInt(lastMove.oldIdx / 8);
+        const oldY = lastMove.oldIdx % 8;
+        const newX = parseInt(lastMove.newIdx / 8);
+        const newY = lastMove.newIdx % 8;
+        currBoard[oldX][oldY] = prevButtons.classList.contains('prev-button') ? lastMove.pieceCode : 0;
+        currBoard[newX][newY] = lastMove.oldPieceCode;
+    
+        setNewVirtualBoard(currBoard);
+
+        if (prevButtons.classList.contains('prev-button')) {
+            const newNextMoves = [...nextMoves,
+                {
+                    oldIdx: lastMove.oldIdx,
+                    newIdx: lastMove.newIdx,
+                    oldPieceCode: lastMove.pieceCode,
+                    pieceCode: lastMove.oldPieceCode
+                }
+            ];
+            localStorage.setItem("prev-moves", JSON.stringify(prevMoves.slice(0, -1)));
+            localStorage.setItem("next-moves", JSON.stringify(newNextMoves));
+
+            setPrevMoves(prevMoves.slice(0, -1));
+            setNextMoves(newNextMoves);
+
+        } else  {
+            console.log('ok from here');
+            const newPrevMoves = [...prevMoves,
+                {
+                    oldIdx: lastMove.oldIdx,
+                    newIdx: lastMove.newIdx,
+                    oldPieceCode: lastMove.pieceCode,
+                    pieceCode: lastMove.oldPieceCode
+                }
+            ];
+
+            localStorage.setItem("prev-moves", JSON.stringify(newPrevMoves));
+            localStorage.setItem("next-moves", JSON.stringify(nextMoves.slice(0, -1)));
+        
+            setNextMoves(nextMoves.slice(0, -1));
+            setPrevMoves(newPrevMoves);
+        }
+
+        localStorage.setItem("current-move", -currentMove);
+        localStorage.setItem("board", JSON.stringify(currBoard));
+        
+        setCurrentMove(-currentMove);
+
+    }, [random]);
 
     // Function for checking the check 
 
@@ -120,9 +178,9 @@ export default function Board({ color }) {
         if (piece === 1) {
 
             // Coordonates for possible moves
-            const newDiagX = currentX - pieceCode;
-            const newDiagY = currentY + pieceCode;
-            const newDiagY2 = currentY - pieceCode;
+            const newDiagX = currentX - (pieceCode * setColor);
+            const newDiagY = currentY + (pieceCode * setColor);
+            const newDiagY2 = currentY - (pieceCode * setColor);
             
             const newCoords = newDiagX * 8 + newDiagY;
             const newCoords2 = newDiagX * 8 + newDiagY2;
@@ -145,13 +203,13 @@ export default function Board({ color }) {
                                      board[newDiagX][newDiagY2] &&
                                      board[newDiagX][newDiagY2];
             
-            if ((pieceCode < 0 && currentX === 1) || (pieceCode > 0 && currentX === 6)) {
-                const newFrontX = currentX - (pieceCode * 2);
+            if ((pieceCode * setColor < 0 && currentX === 1) || (pieceCode * setColor > 0 && currentX === 6)) {
+                const newFrontX = currentX - (pieceCode * 2 * setColor);
                 console.log(newFrontX);
                 const newFrontCoords = newFrontX * 8 + currentY;
 
                 const newCoordsSquare = board[newFrontX][currentY];
-                if (newCoordsSquare === 0) possibleMoves.push(newFrontCoords);
+                if (newCoordsSquare === 0 && frontElement === 0) possibleMoves.push(newFrontCoords);
                 
             }
 
@@ -644,7 +702,7 @@ export default function Board({ color }) {
                 for (let i = coords + 1; i <= smallRocadeCoords; i++) {
                     const rocadeX = parseInt(i / 8);
                     const rocadeY = i % 8;
-                    console.log(i, board[rocadeX][rocadeY]);
+                   
                     if (board[rocadeX][rocadeY] !== 0) smallRocadeEmpty = false;
                 } 
 
@@ -686,13 +744,11 @@ export default function Board({ color }) {
     const dragPiece = (e, square) => {
         
         if (!gameRunning) return;
-        if (pawnTransform && pawnTransform?.elements.length > 1) {
-            console.log('fail');
-            return;
-        }
+        if (pawnTransform && pawnTransform?.elements.length > 1) return;
+
         const element = e.target.classList.contains('piece') ? e.target : e.target.parentElement;
         const containerElement = element.parentElement;
-        console.log(containerElement);
+        console.log(containerElement, square);
         const x = e.clientX - 20;
         const y = e.clientY - 20;
         console.log(x, y, square, currentMove);
@@ -710,7 +766,7 @@ export default function Board({ color }) {
         setOldIdx(newTotalCoords);
 
         const currPossibleMoves = getPossibleMoves(square, newTotalCoords, newVirtualBoard);
-        console.log(currPossibleMoves, square, currentMove, newTotalCoords);
+        console.log(currPossibleMoves, newVirtualBoard, square, currentMove, newTotalCoords);
         if (checkOppositeColor(square, currentMove)) setPossibleMoves([]);
         else {
             setPossibleMoves(currPossibleMoves);
@@ -776,7 +832,6 @@ export default function Board({ color }) {
         const idx = currentX * 8 + currentY;
         const oldX = parseInt(oldIdx / 8);
         const oldY = oldIdx % 8;
-        console.log(oldIdx);
 
         const sameIndex = possibleMoves.find(move => {
             if (typeof move === 'object') rocade = move;
@@ -814,30 +869,29 @@ export default function Board({ color }) {
         });  
 
         console.log(kingSquare, currentMove);
-        const check = checkCheck(kingSquare, currentMove * 6);
+        const check = checkCheckOptimised(kingSquare, currentMove * 6);
         console.log(check);
 
         if (sameIndex !== undefined && !check) {  
 
             // Sound of piece moving
-            
             pieceSound.play();
 
-            console.log('hjhgjghjjpgihpjigfhjiphhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh')
             const squareDOM = currSquareElement.current[idx];
             const squarePiece = squareDOM && squareDOM.querySelector('[code]');
             const dropPieceCode = squarePiece && squarePiece.getAttribute('code');
             squareRef.current = null;
-        
+            const cloneIcon = squareDOM && squareDOM.firstChild && squareDOM.firstChild.classList.contains('icon-container') ?  squareDOM.firstChild.cloneNode(true) : null;
+            console.log(cloneIcon, prevMoves);
             if (dropPieceCode && !checkOppositeColor(pieceCode, dropPieceCode)) return;
             else if (dropPieceCode && checkOppositeColor(pieceCode, dropPieceCode) && ((pieceCode !== 1 || currentX !== 0) && (squareDOM && pieceCode !== -1 || currentX !== 7))) {
-                squareDOM.innerHTML = '';
+                // squareDOM.innerHTML = '';
                 pieceSound.pause();
-
                 pieceCapture.play();
-
             }
             
+            let newPiece = pieceCode;
+    
 
             // Piece being moved to new square
             if ((squareDOM && pieceCode === 1 && currentX === 0) || (squareDOM && pieceCode === -1 && currentX === 7)) {
@@ -845,13 +899,13 @@ export default function Board({ color }) {
                 console.log('here'); 
                 
                 const containers = [faChessRook, faChessKnight, faChessBishop, faChessQueen];
-                const leftContainers = getContainers(containers, pieceCode);  
+                const leftContainers = containers;  
                 console.log(leftContainers);
                 const elements = leftContainers.length >= 1 ? leftContainers.map(piece => {
                     return (
                         <div 
                             className={`mini-icon-container ${pieceCode < 0 ? -1 : 1} ${pieceCode}`}
-                            onClick={(e) => pawnTransformPiece(piece, idx)}
+                            onClick={(e) => pawnTransformPiece(piece, idx, oldIdx)}
                         >
                             <FontAwesomeIcon 
                                 icon={piece} 
@@ -869,12 +923,20 @@ export default function Board({ color }) {
                     elements: elements
                 });
 
-                squareDOM.appendChild(activePiece);
-                if (elements !== activePiece) squareDOM.removeChild(activePiece);
-                console.log(elements);
             } else { 
-                squareDOM && squareDOM.appendChild(activePiece);
+                setPawnTransform(null);
             }
+
+            setPrevMoves([...prevMoves, 
+                {
+                    oldIdx: oldIdx, 
+                    newIdx: idx, 
+                    pieceCode: pieceCode,
+                    oldPieceCode: newVirtualBoard[currentX][currentY],
+                }
+            ]);
+
+            setNextMoves([]);
 
             // Removing old preview dots
             previewMoves && previewMoves.forEach(move => {
@@ -911,8 +973,12 @@ export default function Board({ color }) {
 
             console.log(oldX, oldY, currentX, currentY);
 
+            console.log(cloneVirtualBoard);
+
             cloneVirtualBoard[oldX][oldY] = 0;
             cloneVirtualBoard[currentX][currentY] = pieceCode;
+
+            console.log(cloneVirtualBoard);
             
             // Checking if it's giving checkmate to the opponent
             let oppositeKingSquare, newBoard = [];
@@ -982,16 +1048,20 @@ export default function Board({ color }) {
         return result;
     };
 
-    const pawnTransformPiece = (piece, idx) => {
+    const pawnTransformPiece = (piece, idx, oldIdx) => {
 
         // Get transformed piece's code
         const transformPieceCode = currentMove * Object.keys(piecesCode).find(key => piecesCode[key] === piece);
         const newBoard = cloneDeep(newVirtualBoard);
         const currentX = parseInt(idx / 8);
         const currentY = idx % 8;
+        const oldX = parseInt(oldIdx / 8);
+        const oldY = oldIdx % 8;
         const totalIdx = currentX * 8 + currentY + + (currentX % 2 !== 0 ? 1 : 0)
         newBoard[currentX][currentY] = transformPieceCode;
+        newBoard[oldX][oldY] = 0;
         setNewVirtualBoard(newBoard);
+        console.log(newBoard);
         previewVirtualBoard.current = newBoard;
         console.log(newBoard);
         
@@ -1000,6 +1070,8 @@ export default function Board({ color }) {
             piece: transformPieceCode,
             elements: []
         });
+
+        localStorage.setItem("board", JSON.stringify(newBoard));
     };
 
     const checkOppositeColor = (piece1, piece2) => {
@@ -1008,96 +1080,273 @@ export default function Board({ color }) {
         return false;
     }
 
-    const checkCheck = (kingSquare, kCode, isFromCheckMate = false) => {
-
-        console.log('lalalalaalaallapgdkkdfpgogjodjfgjdp', previewVirtualBoard.current, kingSquare);
-        console.log(kingSquare);
-        let currBoard = [];
-
-        previewVirtualBoard.current.forEach(row => {
-            row.forEach(square => {
-                currBoard.push(square);
-            });
-        });
-
-        const oppositeSquaresClone = currBoard.map((square, idx) => {
-            if (checkOppositeColor(kCode, square)) return {
-                pieceCode: square,
-                coords: idx
-            };
-        });
-
-        console.log(oppositeSquaresClone);
-
-        const oppositeSquares = oppositeSquaresClone.filter(square => square !== undefined);
-
-        console.log(oppositeSquares, kingSquare);
-
-        // Checking if king is attacked
-
-        const check = oppositeSquares.some(square => {
-            console.log(square.pieceCode, square.coords, previewVirtualBoard.current);
-            const possibleMovesCheck = getPossibleMoves(square.pieceCode, square.coords, previewVirtualBoard.current);
-            console.log(possibleMoves);
-            return possibleMovesCheck.some(currSquare => {
-                
-                console.log(currSquare, kingSquare);
-                return currSquare === kingSquare;
-            });
-        });
-
-        const oldBoard = cloneDeep(previewVirtualBoard.current);
-
-        if (check && !isFromCheckMate) checkCheckmate(kCode, newVirtualBoard);
-
-        previewVirtualBoard.current = oldBoard;
-
-        return check;
-    };
-
     const checkCheckOptimised = (kingSquare, kCode, isFromCheckMate = false) => {
+
+        if (!isFromCheckMate) console.log(previewVirtualBoard.current);
+
         // Getting coords
         const currentX = parseInt(kingSquare / 8);
         const currentY = kingSquare % 8;
-   
-        // Checking same row
+        const pieceCode = kCode / (-6);
+
+        let check = false;
+
+        const kingPossibleSquares = [
+            [currentX - 1, currentY - 1],
+            [currentX - 1, currentY],
+            [currentX - 1, currentY + 1],
+            [currentX, currentY - 1],
+            [currentX, currentY + 1],
+            [currentX + 1, currentY - 1],
+            [currentX + 1, currentY],
+            [currentX + 1, currentY + 1]
+        ];
+
+        console.log(previewVirtualBoard.current, pieceCode);
+
+        kingPossibleSquares.forEach(move => {
+            const square = previewVirtualBoard.current[move[0]] && 
+                           previewVirtualBoard.current[move[0]][move[1]] &&
+                           previewVirtualBoard.current[move[0]][move[1]];
+
+            if (square === -kCode && square !== null) {
+                const oldBoard = cloneDeep(previewVirtualBoard.current);
+                if (!isFromCheckMate) checkCheckmate(kCode, newVirtualBoard);
+                previewVirtualBoard.current = oldBoard;
+                check = true;
+            }
+        });
+
+        // Pawns 
+
+        const pawnPossibleSquares = [
+            [currentX + (pieceCode * setColor), currentY - (pieceCode * setColor)],
+            [currentX + (pieceCode * setColor), currentY + (pieceCode * setColor)]
+        ];
         
-        for (let i = 0; i < COLUMNS; i++) {
-            if (i === currentY) continue;
-            const sameRowSquare = previewVirtualBoard.current[currentX][i];
-            if (!checkOppositeColor(sameRowSquare, kingSquare)) continue;
-            if (Math.abs(sameRowSquare) !== 2 && Math.abs(sameRowSquare) !== 5) continue;
+        console.log(pawnPossibleSquares);
 
-            const newCoords = currentX * 8 + i;
-            const squareMoves = getPossibleMoves(sameRowSquare, newCoords, previewVirtualBoard.current);
-            
+        pawnPossibleSquares.forEach(move => {
+            const square = previewVirtualBoard.current[move[0]] && 
+                           previewVirtualBoard.current[move[0]][move[1]] &&
+                           previewVirtualBoard.current[move[0]][move[1]];
 
-            squareMoves.forEach(move => {
-                const newX = parseInt(move / 8);
-                const newY = move % 8;
-                const squareMovePiece = previewVirtualBoard.current[newX][newY];
-                if (squareMovePiece === kCode) return true;
-            });
+            if (square === pieceCode) {
+                const oldBoard = cloneDeep(previewVirtualBoard.current);
+                if (!isFromCheckMate) checkCheckmate(kCode, newVirtualBoard);
+                previewVirtualBoard.current = oldBoard;
+                console.log('check');
+                check = true;
+            }
+        });
+        
+        // Rows
+
+        if (currentX > 0) {
+            for (let i = currentX - 1; i >= 0; i--) {
+                const rowSquare =   previewVirtualBoard.current[i] && 
+                                    previewVirtualBoard.current[i][currentY] &&
+                                    previewVirtualBoard.current[i][currentY];
+                
+                console.log(5 * pieceCode, rowSquare);
+
+                if (rowSquare === 2 * pieceCode || rowSquare === 5 * pieceCode) {
+                    if (!isFromCheckMate) {
+                        const oldBoard = cloneDeep(previewVirtualBoard.current);
+                        checkCheckmate(kCode, newVirtualBoard);
+                        previewVirtualBoard.current = oldBoard;
+                    }
+                    return true;
+                }
+                else if (rowSquare !== 0) break;
+            }
         }
 
-        for (let i = 0; i < ROWS; i++) {
-            if (i === currentX) continue;
-            const sameColumnSquare = previewVirtualBoard.current[i][currentY];
-            if (!checkOppositeColor(sameColumnSquare, kingSquare)) continue;
-            if (Math.abs(sameColumnSquare) !== 2 && Math.abs(sameColumnSquare) !== 5) continue;
-            const newCoords = i * 8 + currentY;
-            const squareMoves = getPossibleMoves(sameColumnSquare, newCoords, previewVirtualBoard.current);
-        
-            squareMoves.forEach(move => {
-                const newX = parseInt(move / 8);
-                const newY = move % 8;
-                const squareMovePiece = previewVirtualBoard.current[newX][newY];
-                if (squareMovePiece === kCode) return true;
-            });
+        if (currentX < ROWS - 1) {
+            for (let i = currentX + 1; i < ROWS; i++) {
+                const rowSquare =   previewVirtualBoard.current[i] && 
+                                    previewVirtualBoard.current[i][currentY] &&
+                                    previewVirtualBoard.current[i][currentY];
+
+                console.log(5 * pieceCode, rowSquare);
+               
+                
+                if (rowSquare === 2 * pieceCode || rowSquare === 5 * pieceCode) {
+                   
+                    if (!isFromCheckMate) {
+                        const oldBoard = cloneDeep(previewVirtualBoard.current);
+                        const checkMate = checkCheckmate(kCode, newVirtualBoard);
+                        console.log(checkMate);
+                        if (checkMate) setGameRunning(false);
+                        previewVirtualBoard.current = oldBoard;
+                    }
+                    console.log("here in if")
+                    
+                    return true;
+                }
+                else if (rowSquare !== 0) break;
+            }
         }
+
+        // Columns 
+
+        if (currentY > 0) {
+            for (let i = currentY - 1; i >= 0; i--) {
+                const columnSquare = previewVirtualBoard.current[currentX] &&
+                                     previewVirtualBoard.current[currentX][i] && 
+                                     previewVirtualBoard.current[currentX][i];
+                
+                if (columnSquare === 2 * pieceCode || columnSquare === 5 * pieceCode) {
+                    
+                    if (!isFromCheckMate) {
+                        const oldBoard = cloneDeep(previewVirtualBoard.current);
+                        checkCheckmate(kCode, newVirtualBoard);
+                        previewVirtualBoard.current = oldBoard;
+                        
+                    }
+                    return true;
+                }
+                else if (columnSquare !== 0) break;
+            }
+        }
+
+        if (currentY < COLUMNS - 1) {
+            for (let i = currentX + 1; i < COLUMNS; i++) {
+                const columnSquare = previewVirtualBoard.current[currentX] &&
+                                     previewVirtualBoard.current[currentX][i] && 
+                                     previewVirtualBoard.current[currentX][i];
+                
+                if (columnSquare === 2 * pieceCode || columnSquare === 5 * pieceCode) {
+                    
+                    if (!isFromCheckMate) {
+                        const oldBoard = cloneDeep(previewVirtualBoard.current);
+                        checkCheckmate(kCode, newVirtualBoard);
+                        previewVirtualBoard.current = oldBoard;
+                    }
+                    return true;
+                }
+                else if (columnSquare !== 0) break;
+            }
+        }
+
+        // Diagonal top left
+        
+        if (currentX > 0 && currentY > 0) {
+            for (let i = 1; i < 8; i++) {
+                const newX = currentX - i;
+                const newY = currentY - i;
+                const square = previewVirtualBoard.current[newX] &&
+                               previewVirtualBoard.current[newX][newY] && 
+                               previewVirtualBoard.current[newX][newY];
+
+                if (square == null) break;
+                
+                if (square === 4 * pieceCode || square === 5 * pieceCode) {
+                    const oldBoard = cloneDeep(previewVirtualBoard.current);
+                    if (!isFromCheckMate) checkCheckmate(kCode, newVirtualBoard);
+                    previewVirtualBoard.current = oldBoard;
+                    return true;
+                }
+                else if (square !== 0) break;
+            }
+        }
+
+        // Diagonal top right
+
+        if (currentX > 0 && currentY < COLUMNS - 1) {
+            for (let i = 1; i < 8; i++) {
+                const newX = currentX - i;
+                const newY = currentY + i;
+                const square = previewVirtualBoard.current[newX] &&
+                               previewVirtualBoard.current[newX][newY] && 
+                               previewVirtualBoard.current[newX][newY];
+                if (square == null) break;
+                
+                if (square === 4 * pieceCode || square === 5 * pieceCode) {
+                    const oldBoard = cloneDeep(previewVirtualBoard.current);
+                    if (!isFromCheckMate) checkCheckmate(kCode, newVirtualBoard);
+                    previewVirtualBoard.current = oldBoard;
+                    return true;
+                }
+                else if (square !== 0) break;
+            }
+        }
+
+        // Diagonal bottom left
+
+        if (currentX < ROWS - 1 && currentY > 0) {
+            for (let i = 1; i < 8; i++) {
+                const newX = currentX + i;
+                const newY = currentY - i;
+                const square = previewVirtualBoard.current[newX] &&
+                               previewVirtualBoard.current[newX][newY] && 
+                               previewVirtualBoard.current[newX][newY];
+                if (square == null) break;
+                
+                if (square === 4 * pieceCode || square === 5 * pieceCode) {
+                    const oldBoard = cloneDeep(previewVirtualBoard.current);
+                    if (!isFromCheckMate) checkCheckmate(kCode, newVirtualBoard);
+                    previewVirtualBoard.current = oldBoard;
+                    return true;
+                }
+                else if (square !== 0) break;
+            }
+        }
+
+        // Diagonal bottom right
+
+        if (currentX < ROWS - 1 && currentY < COLUMNS - 1) {
+            for (let i = 1; i < 8; i++) {
+                const newX = currentX + i;
+                const newY = currentY + i;
+                const square = previewVirtualBoard.current[newX] &&
+                               previewVirtualBoard.current[newX][newY] && 
+                               previewVirtualBoard.current[newX][newY];
+                if (square == null) break;
+                console.log(newX, newY, square, 5 * pieceCode);
+                
+                if (square === 4 * pieceCode || square === 5 * pieceCode) {
+                    
+                    if (!isFromCheckMate) {
+                        const oldBoard = cloneDeep(previewVirtualBoard.current);
+                        checkCheckmate(kCode, newVirtualBoard);
+                        previewVirtualBoard.current = oldBoard;
+                    }
+                    check = true;
+                }
+                else if (square !== 0) break;
+            }
+        }
+
+        // Knight moves
+
+        const knightPossibleMoves = [
+            [currentX - 2, currentY - 1],
+            [currentX - 2, currentY + 1],
+            [currentX + 2, currentY - 1],
+            [currentX + 2, currentY + 1],
+            [currentX - 1, currentY - 2],
+            [currentX - 1, currentY + 2],
+            [currentX + 1, currentY - 2],
+            [currentX + 1, currentY + 2]
+        ];
 
         
         
+        knightPossibleMoves.forEach(move => {
+            const square = previewVirtualBoard.current[move[0]] && 
+                           previewVirtualBoard.current[move[0]][move[1]] &&
+                           previewVirtualBoard.current[move[0]][move[1]];
+
+            if (square === pieceCode * 3) { 
+                const oldBoard = cloneDeep(previewVirtualBoard.current);
+                if (!isFromCheckMate) checkCheckmate(kCode, newVirtualBoard);
+                previewVirtualBoard.current = oldBoard;
+                check = true;
+            }
+        });
+
+        return check;
     };
 
     // Checking the check-mate
@@ -1122,6 +1371,9 @@ export default function Board({ color }) {
         const mySquares = mySquaresClone.filter(square => square !== undefined);
         console.log(mySquares);
         let checkMate = true;
+
+        const oldBoard = cloneDeep(previewVirtualBoard.current);
+
         mySquares.forEach(square => {
 
             // Next possible moves to check if it's checkmate
@@ -1136,12 +1388,15 @@ export default function Board({ color }) {
                 const newBoard = cloneDeep(constantBoard);
 
                 newBoard[currX][currY] = 0;
+                
+                if (newBoard && newBoard[newX] && newBoard[newX][newY]) {
+                    if (newBoard[newX][newY] !== 0) {
+                        const enemyPieceNumber = newBoard[newX][newY];
+                        if (checkOppositeColor(enemyPieceNumber, square.pieceCode)) newBoard[newX][newY] = square.pieceCode;
+                    } else newBoard[newX][newY] = square.pieceCode;
+                }
 
-                if (newBoard[newX][newY] !== 0) {
-                    const enemyPieceNumber = newBoard[newX][newY];
-                    if (checkOppositeColor(enemyPieceNumber, square.pieceCode)) newBoard[newX][newY] = square.pieceCode;
-                } else newBoard[newX][newY] = square.pieceCode;
-
+                
                 previewVirtualBoard.current = cloneDeep(newBoard);
 
                 let allInOneBoard = [];
@@ -1150,26 +1405,31 @@ export default function Board({ color }) {
                     row.forEach(square => allInOneBoard.push(square));
                 });
 
-                console.log(previewVirtualBoard.current, kCode);
+
+
+                console.log(newBoard, kCode);
 
                 console.log(allInOneBoard);
 
-                let kingSquare = [];
+                let kingSquare = -1;
 
                 allInOneBoard.forEach((square, idx) => {
                     if (square === kCode) kingSquare = idx;
                 });
 
+
                 console.log(kingSquare);
                 
-                const newBoardCheck = checkCheck(kingSquare, kCode, true);
+                const newBoardCheck = checkCheckOptimised(kingSquare, kCode, true);
                 console.log(newBoardCheck, kingSquare, kCode);
                 if (!newBoardCheck) checkMate = false;
-            
+                
             });
         });
         
-       console.log(checkMate);
+
+        previewVirtualBoard.current = oldBoard;
+       if (checkMate) setGameRunning(false);
        return checkMate;
         
     };
@@ -1201,7 +1461,7 @@ export default function Board({ color }) {
     const addSquares = () => {
         let squareComponents = [];
         console.log(virtualBoard);
-        const board = virtualBoard.map((row, rowIdx) => {
+        const board = newVirtualBoard.map((row, rowIdx) => {
 
 
             const rows = row.map((square, squareIdx) => {

@@ -6,14 +6,14 @@ import PreviousButton from "./PreviousButton";
 
 import '../styles/right-side.css';
 
-export default function RightSide() {
+export default function RightSide({clickButton, computerGame, empty}) {
 
-    return (
+    return empty !== true && (
         <div className="right-side">
-            <ResetButton />
+            <ResetButton computerGame={computerGame} />
             <div className="prev-next">
-                <PreviousButton icon={faArrowLeft} />
-                <PreviousButton icon={faArrowRight} />
+                <PreviousButton icon={faArrowLeft} classDiv="prev-button" clickButton={clickButton}/>
+                <PreviousButton icon={faArrowRight} classDiv="next-button" clickButton={clickButton}/>
             </div>
         </div>
     );

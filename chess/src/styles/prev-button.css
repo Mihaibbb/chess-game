@@ -1,4 +1,5 @@
-.prev-button 
+.prev-button,
+.next-button
 {
     /* background: linear-gradient(rgb(164,199,233), #27659B); */
     background: rgba(0, 0, 0, .3);
