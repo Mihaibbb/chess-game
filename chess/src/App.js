@@ -5,14 +5,19 @@ import io from "socket.io-client";
 import Classic from "./Components/Classic";
 import Online from "./Components/Online";
 import Computer from "./Components/Computer";
+import Practice from "./Components/Practice";
+import Tutorial from "./Components/Tutorial";
+import Lessons from "./Components/Lessons";
+
+import "./styles/scroll.css";
 
 export default function App() {
 
     const [userSocket, setUserSocket] = useState(null);
     const [playerColor, setPlayerColor] = useState(localStorage.getItem("computer-player-color") ? localStorage.getItem("computer-player-color") : null);
     const [playerDifficulty, setPlayerDifficulty] = useState(localStorage.getItem("computer-player-difficulty") ? JSON.parse(localStorage.getItem("computer-player-difficulty")) : null);
-
-    let id;
+    
+    const [id, setId] = useState(null);
 
     useEffect(() => {
        
@@ -23,14 +28,14 @@ export default function App() {
             console.log('connected', socket.id, socket);
             setUserSocket(socket);
             if (JSON.parse(localStorage.getItem("socket")) == null) localStorage.setItem("socket", JSON.stringify(socket.id));
-            id = socket.id;
+            setId(socket.id);
         });
 
         socket.on("ok", data => console.log(data));
 
     }, []);
 
-    const getColor = (color) => {
+    const getColor = (color, mode) => {
         setPlayerColor(color);
         
         if (localStorage.length !== 0) {
@@ -38,12 +43,14 @@ export default function App() {
                 const key = localStorage.key(i);
                 console.log(key);
                 if (key === null) continue;
-                if (key.search("computer-") !== -1) localStorage.removeItem(key);
+                if (key.search(mode) !== -1) localStorage.removeItem(key);
             }
         }
-        localStorage.setItem("computer-player-color", color);
+
+        localStorage.setItem(`${mode}player-color`, color);
         // window.location.href = `${window.location.href}computer`;
     };
+
 
     const getDifficulty = (difficulty) => {
         setPlayerDifficulty(difficulty);
@@ -62,13 +69,13 @@ export default function App() {
 
     useEffect(() => {
         console.log(playerColor);
-        if (playerColor === null || playerDifficulty === null) return;
+        if (playerColor === null || playerDifficulty === null || id === null || userSocket === null) return;
         return (
             <Router>
                 <Switch>
     
                     <Route exact path="/">
-                        <Home id={userSocket.id} getColor={getColor} getDifficulty={getDifficulty}/>
+                        <Home id={id} getColor={getColor} getDifficulty={getDifficulty}/>
                     </Route>
     
                     <Route path="/classic">
@@ -77,6 +84,18 @@ export default function App() {
     
                     <Route path="/computer">
                         <Computer color={playerColor} difficulty={playerDifficulty}/>
+                    </Route>
+
+                    <Route exact path="/practice">
+                        <Practice />
+                    </Route>
+
+                    <Route exact path="/tutorial">
+                        <Tutorial />
+                    </Route>
+
+                    <Route exact path="/lessons">
+                        <Lessons />
                     </Route>
     
                     <Route path={`/:id`}>
@@ -88,7 +107,7 @@ export default function App() {
             
         );
         
-    }, [playerColor, playerDifficulty]);
+    }, [playerColor, playerDifficulty, id, userSocket]);
 
     
 
@@ -99,21 +118,33 @@ export default function App() {
             <Switch>
 
                 <Route exact path="/">
-                    <Home id={userSocket.id} getColor={getColor} getDifficulty={getDifficulty}/>
+                    <Home id={id} getColor={getColor} getDifficulty={getDifficulty}/>
                 </Route>
 
-                <Route path="/classic">
+                <Route exact path="/classic">
                     <Classic />
                 </Route>
 
-                <Route path="/computer">
+                <Route exact path="/computer">
                     <Computer color={playerColor} difficulty={playerDifficulty}/>
+                </Route>
+
+                <Route exact path="/practice">
+                    <Practice />
+                </Route>
+
+                <Route exact path="/tutorial">
+                    <Tutorial />
+                </Route>
+
+                <Route exact path="/lessons">
+                    <Lessons />
                 </Route>
 
                 <Route path={`/:id`}>
                     <Online socket={userSocket}/>
                 </Route>
-        
+
             </Switch>
         </Router>
         

@@ -9,13 +9,13 @@ import '../styles/board.css';
 
 
 const HEIGHT = 85 * window.innerHeight / 100;
-const SQUARES = 64;
 const ROWS = 8;
 const COLUMNS = 8;
 
-export default function Board({ color, prevButtons, random }) {
+export default function Board({ color, prevButtons, random, stopTimer, winner, lesson, gameEnd }) {
 
     const setColor = color;
+  
 
     const createVirtualBoard = () => {
         let board = [];
@@ -43,24 +43,22 @@ export default function Board({ color, prevButtons, random }) {
     const boardRef = useRef(null);
     const squareRef = useRef(null);
     
-    const [currentMove, setCurrentMove] = useState(localStorage.getItem("current-move") === null ? 1 : localStorage.getItem("current-move"));
-    const [currentTotalCoords, setCurrentTotalCoords] = useState(null);
+    const [currentMove, setCurrentMove] = useState(localStorage.getItem("classic-current-move") === null ? 1 : localStorage.getItem("classic-current-move"));
     const [oldIdx, setOldIdx] = useState(null);
     const [possibleMoves, setPossibleMoves] = useState(null);
     const [activePiece, setActivePiece] = useState(null);
     const [dropPiecer, setActiveDrop] = useState(null);
-    const [virtualBoard, setVirtualBoard] = useState(localStorage.getItem("board") === null ? createVirtualBoard() : JSON.parse(localStorage.getItem("board")));
+    const virtualBoard = localStorage.getItem("classic-board") === null ? createVirtualBoard() : JSON.parse(localStorage.getItem("classic-board"));
     const [newVirtualBoard, setNewVirtualBoard] = useState(virtualBoard);
     const [previewMoves, setPreviewMoves] = useState([]);
     const [gameRunning, setGameRunning] = useState(true);
     const [pawnTransform, setPawnTransform] = useState(null);
-    const [prevMoves, setPrevMoves] = useState(localStorage.getItem("prev-moves") !== null ? JSON.parse(localStorage.getItem("prev-moves")) : []);
-    const [nextMoves, setNextMoves] = useState(localStorage.getItem("next-moves") !== null ? JSON.parse(localStorage.getItem("next-moves")) : []);
+    const [prevMoves, setPrevMoves] = useState(localStorage.getItem("classic-prev-moves") !== null ? JSON.parse(localStorage.getItem("classic-prev-moves")) : []);
+    const [nextMoves, setNextMoves] = useState(localStorage.getItem("classic-next-moves") !== null ? JSON.parse(localStorage.getItem("classic-next-moves")) : []);
  
     const previewVirtualBoard = useRef(virtualBoard);
     const squareElements = useRef(null);
     const currSquareElement = useRef([]);
-    const oldChildren = useRef([]);
     const kingsMoved = useRef({"6": false, "-6": false});
     const rookMoved = useRef({
         "2": {
@@ -99,8 +97,6 @@ export default function Board({ color, prevButtons, random }) {
     const squareHeight = parseInt(boardRef.current?.style.height) / 8;
 
     console.log(squareWidth, squareHeight);
-    const player2Color = virtualBoard[0][0] > 0 ? "white" : "black";
-    const player1Color = player2Color === "white" ? "black" : "white";
 
     // Checking everytime prev/next button is pressed
     
@@ -131,8 +127,8 @@ export default function Board({ color, prevButtons, random }) {
                     pieceCode: lastMove.oldPieceCode
                 }
             ];
-            localStorage.setItem("prev-moves", JSON.stringify(prevMoves.slice(0, -1)));
-            localStorage.setItem("next-moves", JSON.stringify(newNextMoves));
+            localStorage.setItem("classic-prev-moves", JSON.stringify(prevMoves.slice(0, -1)));
+            localStorage.setItem("classic-next-moves", JSON.stringify(newNextMoves));
 
             setPrevMoves(prevMoves.slice(0, -1));
             setNextMoves(newNextMoves);
@@ -148,15 +144,15 @@ export default function Board({ color, prevButtons, random }) {
                 }
             ];
 
-            localStorage.setItem("prev-moves", JSON.stringify(newPrevMoves));
-            localStorage.setItem("next-moves", JSON.stringify(nextMoves.slice(0, -1)));
+            localStorage.setItem("classic-prev-moves", JSON.stringify(newPrevMoves));
+            localStorage.setItem("classic-next-moves", JSON.stringify(nextMoves.slice(0, -1)));
         
             setNextMoves(nextMoves.slice(0, -1));
             setPrevMoves(newPrevMoves);
         }
 
-        localStorage.setItem("current-move", -currentMove);
-        localStorage.setItem("board", JSON.stringify(currBoard));
+        localStorage.setItem("classic-current-move", -currentMove);
+        localStorage.setItem("classic-board", JSON.stringify(currBoard));
         
         setCurrentMove(-currentMove);
 
@@ -742,15 +738,16 @@ export default function Board({ color, prevButtons, random }) {
     };
 
     const dragPiece = (e, square) => {
-        
+        if (lesson) return;
         if (!gameRunning) return;
         if (pawnTransform && pawnTransform?.elements.length > 1) return;
 
         const element = e.target.classList.contains('piece') ? e.target : e.target.parentElement;
         const containerElement = element.parentElement;
-        console.log(containerElement, square);
-        const x = e.clientX - 20;
-        const y = e.clientY - 20;
+        console.log(containerElement, square, containerElement.getBoundingClientRect().top);
+ 
+        const x = e.clientX - 20 + (lesson ? window.scrollX : 0);
+        const y = e.clientY - 20 + (lesson ? window.scrollY : 0);
         console.log(x, y, square, currentMove);
         containerElement.style.position = 'absolute';
         containerElement.style.left = `${x}px`;
@@ -804,14 +801,16 @@ export default function Board({ color, prevButtons, random }) {
     };
     
     const movePiece = e => {
-        
+       
         if (!activePiece) return;
-        const x = e.clientX - 20;
-        const y = e.clientY - 20;
+        const x = e.clientX - 20 + (lesson ? window.scrollX : 0);
+        const y = e.clientY - 20 + (lesson ? window.scrollY : 0);
         activePiece.style.position = 'absolute';
         activePiece.style.left = `${x > maxX ? maxX : x < minX ? minX : x}px`;
         activePiece.style.top = `${y > maxY ? maxY : y < minY ? minY : y}px`;
         activePiece.style.zIndex = 3;
+
+        console.log()
 
         const ySquare = (parseInt(activePiece.style.left) - boardRef.current?.offsetLeft) / squareWidth;
         const xSquare = (parseInt(activePiece.style.top) - boardRef.current?.offsetTop) / squareHeight;
@@ -821,6 +820,7 @@ export default function Board({ color, prevButtons, random }) {
     };
     
     const dropPiece = (e, pieceCode) => {
+        console.log(winner);
         
         if (!activePiece || !squareRef.current || oldIdx === null) return;
         if (!possibleMoves) return;
@@ -861,10 +861,6 @@ export default function Board({ color, prevButtons, random }) {
 
         squaresVirtualBoard.forEach((square, totalIdx) => {
             const iconColor = square && square < 0 ? -1 : 1;
-
-            const x = parseInt(totalIdx / 8);
-            const y = parseInt(totalIdx % 8);
-
             if (square === currentMove * 6 && !checkOppositeColor(iconColor, currentMove)) kingSquare = totalIdx;
         });  
 
@@ -872,7 +868,7 @@ export default function Board({ color, prevButtons, random }) {
         const check = checkCheckOptimised(kingSquare, currentMove * 6);
         console.log(check);
 
-        if (sameIndex !== undefined && !check) {  
+        if (sameIndex !== undefined && !check && winner == null) {  
 
             // Sound of piece moving
             pieceSound.play();
@@ -889,8 +885,6 @@ export default function Board({ color, prevButtons, random }) {
                 pieceSound.pause();
                 pieceCapture.play();
             }
-            
-            let newPiece = pieceCode;
     
 
             // Piece being moved to new square
@@ -995,18 +989,30 @@ export default function Board({ color, prevButtons, random }) {
             
             const checkMateOpponent = checkCheckmate(-currentMove * 6, cloneVirtualBoard);
             console.log(checkMateOpponent);
-            if (checkMateOpponent) setGameRunning(false);
+            if (checkMateOpponent) {
+                console.log("IM HERE");
+                setGameRunning(false);
+                gameEnd(currentMove);
+            }
 
             const checkEqual = checkPat(currentMove, cloneVirtualBoard);
             console.log(checkEqual);
-            if (checkEqual) setGameRunning(false);
-            localStorage.setItem("current-move", -currentMove);
+            if (checkEqual) {
+                setGameRunning(false);
+                gameEnd(0);
+            }
+            localStorage.setItem("classic-current-move", -currentMove);
+            let move = currentMove;
             setCurrentMove(-currentMove);
 
-            localStorage.setItem("board", JSON.stringify(cloneVirtualBoard));
+            localStorage.setItem("classic-board", JSON.stringify(cloneVirtualBoard));
             setNewVirtualBoard(cloneVirtualBoard);
            
             console.log(cloneVirtualBoard);
+
+            // Stopping & starting timer
+
+            stopTimer(move === 1 ? true : move === -1 ? false : null);
 
             // console.log(checkMateOpponent);
             
@@ -1014,39 +1020,41 @@ export default function Board({ color, prevButtons, random }) {
         
     };
 
-    const getContainers = (elements, piece) => {
+    // const getContainers = (elements, piece) => {
 
-        let currBoard = [];
-        console.log(piece);
-        newVirtualBoard.forEach(row => {
-            row.forEach(square => currBoard.push(square));
-        });
+    //     let currBoard = [];
+    //     console.log(piece);
+    //     newVirtualBoard.forEach(row => {
+    //         row.forEach(square => currBoard.push(square));
+    //     });
 
-        const mySquaresClone = currBoard.map((square, idx) => {
-            if (!checkOppositeColor(square, piece) && square !== 0) return square;
-        });
+    //     const mySquaresClone = currBoard.filter((square, idx) => {
+    //         return (!checkOppositeColor(square, piece) && square !== 0);
+    //     });
 
-        const mySquares = mySquaresClone.filter(square => square !== undefined);
+    //     const mySquares = mySquaresClone.filter(square => square !== undefined);
 
-        console.log(mySquares);
+    //     console.log(mySquares);
 
-        const result = elements.filter((element, elementIdx) => {
-            let count = 0;
-            mySquares.forEach(square => {
-                if (square - 2 === elementIdx) count++;
-            });
+    //     const result = elements.filter((element, elementIdx) => {
+    //         let count = 0;
+    //         mySquares.forEach(square => {
+    //             if (square - 2 === elementIdx) count++;
+    //         });
 
-            console.log(count, elementIdx);
+    //         console.log(count, elementIdx);
 
-            if (count < 1 && elementIdx === 3) {
-                console.log('queen not working')
-                return element;
-            }
-            else if (count < 2 && elementIdx !== 3) return element;
-        });
+    //         if (count < 1 && elementIdx === 3) {
+    //             console.log('queen not working')
+    //             return element;
+    //         }
+    //         else if (count < 2 && elementIdx !== 3) return element;
 
-        return result;
-    };
+    //         return null;
+    //     });
+
+    //     return result;
+    // };
 
     const pawnTransformPiece = (piece, idx, oldIdx) => {
 
@@ -1057,7 +1065,6 @@ export default function Board({ color, prevButtons, random }) {
         const currentY = idx % 8;
         const oldX = parseInt(oldIdx / 8);
         const oldY = oldIdx % 8;
-        const totalIdx = currentX * 8 + currentY + + (currentX % 2 !== 0 ? 1 : 0)
         newBoard[currentX][currentY] = transformPieceCode;
         newBoard[oldX][oldY] = 0;
         setNewVirtualBoard(newBoard);
@@ -1071,7 +1078,7 @@ export default function Board({ color, prevButtons, random }) {
             elements: []
         });
 
-        localStorage.setItem("board", JSON.stringify(newBoard));
+        localStorage.setItem("classic-board", JSON.stringify(newBoard));
     };
 
     const checkOppositeColor = (piece1, piece2) => {
@@ -1177,7 +1184,10 @@ export default function Board({ color, prevButtons, random }) {
                         const oldBoard = cloneDeep(previewVirtualBoard.current);
                         const checkMate = checkCheckmate(kCode, newVirtualBoard);
                         console.log(checkMate);
-                        if (checkMate) setGameRunning(false);
+                        if (checkMate) {
+                            setGameRunning(false);
+                            gameEnd(kCode / 6);
+                        }
                         previewVirtualBoard.current = oldBoard;
                     }
                     console.log("here in if")
@@ -1349,6 +1359,12 @@ export default function Board({ color, prevButtons, random }) {
         return check;
     };
 
+    const legalBoard = (board, kCode) => {
+        return board.some(row => {
+            return row.some(cell => cell === kCode);
+        });
+    };
+
     // Checking the check-mate
 
     const checkCheckmate = (kCode, board) => {
@@ -1365,7 +1381,8 @@ export default function Board({ color, prevButtons, random }) {
             if (!checkOppositeColor(square, kCode) && square !== 0) return {
                 pieceCode: square,
                 coords: idx
-            }
+            };
+            return undefined;
         });
 
         const mySquares = mySquaresClone.filter(square => square !== undefined);
@@ -1378,7 +1395,7 @@ export default function Board({ color, prevButtons, random }) {
 
             // Next possible moves to check if it's checkmate
             const possibleMovesCheckmate = getPossibleMoves(square.pieceCode, square.coords, previewVirtualBoard.current);
-            console.log(possibleMovesCheckmate);
+            console.log(square.pieceCode, square.coords, possibleMovesCheckmate);
 
             possibleMovesCheckmate.forEach(move => {
                 const currX = parseInt(square.coords / 8);
@@ -1389,13 +1406,17 @@ export default function Board({ color, prevButtons, random }) {
 
                 newBoard[currX][currY] = 0;
                 
-                if (newBoard && newBoard[newX] && newBoard[newX][newY]) {
+                if (newBoard != null && (newBoard[newX] != null) && (newBoard[newX][newY] != null)) {
+                  
                     if (newBoard[newX][newY] !== 0) {
                         const enemyPieceNumber = newBoard[newX][newY];
                         if (checkOppositeColor(enemyPieceNumber, square.pieceCode)) newBoard[newX][newY] = square.pieceCode;
-                    } else newBoard[newX][newY] = square.pieceCode;
+                    } else {
+                        newBoard[newX][newY] = square.pieceCode;
+                    }
                 }
 
+                console.log(newBoard);
                 
                 previewVirtualBoard.current = cloneDeep(newBoard);
 
@@ -1406,8 +1427,8 @@ export default function Board({ color, prevButtons, random }) {
                 });
 
 
-
-                console.log(newBoard, kCode);
+                const possibleBoard = legalBoard(newBoard, kCode);
+                console.log(newBoard, newBoard[newX][newY], kCode);
 
                 console.log(allInOneBoard);
 
@@ -1421,15 +1442,19 @@ export default function Board({ color, prevButtons, random }) {
                 console.log(kingSquare);
                 
                 const newBoardCheck = checkCheckOptimised(kingSquare, kCode, true);
-                console.log(newBoardCheck, kingSquare, kCode);
-                if (!newBoardCheck) checkMate = false;
+                console.log(previewVirtualBoard.current, newBoardCheck, possibleBoard, kingSquare, kCode);
+
+                if (!newBoardCheck && possibleBoard) checkMate = false;
                 
             });
         });
         
 
         previewVirtualBoard.current = oldBoard;
-       if (checkMate) setGameRunning(false);
+       if (checkMate) {
+           setGameRunning(false);
+           gameEnd(kCode / -6);
+       }
        return checkMate;
         
     };
@@ -1446,6 +1471,8 @@ export default function Board({ color, prevButtons, random }) {
                 pieceCode: square,
                 coords: coords
             };
+
+            return undefined;
         });
 
         const oppositeSquares = oppositeSquaresClone.filter(square => square !== undefined);
@@ -1462,7 +1489,6 @@ export default function Board({ color, prevButtons, random }) {
         let squareComponents = [];
         console.log(virtualBoard);
         const board = newVirtualBoard.map((row, rowIdx) => {
-
 
             const rows = row.map((square, squareIdx) => {
                 const totalIdx = rowIdx * 8 + squareIdx + (rowIdx % 2 !== 0 ? 1 : 0);

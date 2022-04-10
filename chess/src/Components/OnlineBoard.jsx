@@ -13,10 +13,10 @@ const SQUARES = 64;
 const ROWS = 8;
 const COLUMNS = 8;
 
-export default function OnlineBoard({ color, prevButtons, random, socket, oppId, players }) {
+export default function OnlineBoard({ color, prevButtons, random, socket, oppId, players, stopTimer }) {
 
     const setColor = color;
-    console.log(players);
+   
     const createVirtualBoard = () => {
         let board = [];
         for (let i = 0; i < 8; i++) {
@@ -937,6 +937,8 @@ export default function OnlineBoard({ color, prevButtons, random, socket, oppId,
             
 
             localStorage.setItem("online-current-move", -currentMove);
+            
+            stopTimer(currentMove === 1 ? true : currentMove === -1 ? false : null);
             setCurrentMove(-currentMove);
 
 
@@ -944,6 +946,7 @@ export default function OnlineBoard({ color, prevButtons, random, socket, oppId,
             setNewVirtualBoard(cloneVirtualBoard);
 
             // console.log(checkMateOpponent);
+           
             
         } else if (sameIndex === undefined || check) previewVirtualBoard.current = oldBoard;
         
@@ -1304,6 +1307,12 @@ export default function OnlineBoard({ color, prevButtons, random, socket, oppId,
         return check;
     };
 
+    const legalBoard = (board, kCode) => {
+        return board.some(row => {
+            return row.some(cell => cell === kCode);
+        });
+    };
+
     // Checking the check-mate
 
     const checkCheckmate = (kCode, board) => {
@@ -1344,7 +1353,7 @@ export default function OnlineBoard({ color, prevButtons, random, socket, oppId,
 
                 newBoard[currX][currY] = 0;
                 
-                if (newBoard && newBoard[newX] && newBoard[newX][newY]) {
+                if (newBoard != null && (newBoard[newX] != null) && (newBoard[newX][newY] != null)) {
                     if (newBoard[newX][newY] !== 0) {
                         const enemyPieceNumber = newBoard[newX][newY];
                         if (checkOppositeColor(enemyPieceNumber, square.pieceCode)) newBoard[newX][newY] = square.pieceCode;
@@ -1374,18 +1383,20 @@ export default function OnlineBoard({ color, prevButtons, random, socket, oppId,
 
 
                 console.log(kingSquare);
+
+                const possibleBoard = legalBoard(newBoard, kCode);
                 
                 const newBoardCheck = checkCheckOptimised(kingSquare, kCode, true);
                 console.log(newBoardCheck, kingSquare, kCode);
-                if (!newBoardCheck) checkMate = false;
+                if (!newBoardCheck && possibleBoard) checkMate = false;
                 
             });
         });
         
 
         previewVirtualBoard.current = oldBoard;
-       if (checkMate) setGameRunning(false);
-       return checkMate;
+        if (checkMate) setGameRunning(false);
+        return checkMate;
         
     };
 
@@ -1482,6 +1493,34 @@ export default function OnlineBoard({ color, prevButtons, random, socket, oppId,
         return board;
     };
 
+    const addLetters = () => {
+        const letterComponent = parseInt(setColor) === 1 ? (
+            <div className="letters"> 
+                <p>A</p> 
+                <p>B</p> 
+                <p>C</p> 
+                <p>D</p> 
+                <p>E</p> 
+                <p>F</p> 
+                <p>G</p> 
+                <p>H</p> 
+            </div>
+        ) : (
+            <div className="letters"> 
+                <p>H</p> 
+                <p>G</p> 
+                <p>F</p> 
+                <p>E</p> 
+                <p>D</p> 
+                <p>C</p> 
+                <p>B</p> 
+                <p>A</p> 
+            </div>
+        );
+
+        return letterComponent;
+    };
+
     
     useEffect(() => {
         socket.on('send-piece', (oldIdx, newIdx, pieceCode, sound) => {
@@ -1494,7 +1533,7 @@ export default function OnlineBoard({ color, prevButtons, random, socket, oppId,
             const serverNewX = parseInt(newIdx / 8);
             const serverNewY = newIdx % 8;
             cloneVirtualBoard[serverNewX][serverNewY] = pieceCode;
-
+            stopTimer(pieceCode < 0 ? false : true);
             pieceSound.pause();
             pieceCapture.pause();
             pieceSound.currentTime = 0;
@@ -1527,16 +1566,7 @@ export default function OnlineBoard({ color, prevButtons, random, socket, oppId,
     return (
         <div className="board" style={{width: `${HEIGHT}px`, height: `${HEIGHT}px`}} ref={boardRef}>
             {addSquares()}
-            <div className="letters">
-                <p>A</p>
-                <p>B</p>
-                <p>C</p>
-                <p>D</p>
-                <p>E</p>
-                <p>F</p>
-                <p>G</p>
-                <p>H</p>
-            </div>
+            {addLetters()}
         </div>
     );
 };

@@ -7,17 +7,18 @@ import pieceMoveSound from "../sounds/piece-move.wav";
 import pieceCaptureSound from "../sounds/piece-taken.mp3";
 
 import '../styles/board.css';
+import "../styles/practice.css";
 
 const HEIGHT = 85 * window.innerHeight / 100;
 const ROWS = 8;
 const COLUMNS = 8;
 
-export default function ComputerBoard({ color, prevButtons, random, difficulty }) {
+export default function PracticeBoard({ color, prevButtons, random, difficulty, choosePiece, deleteIcon }) {
 
-    const setColor = localStorage.getItem("set-color") ? parseInt(localStorage.getItem("set-color")) : parseInt(color);
+    const setColor = localStorage.getItem("set-color") ? parseInt(localStorage.getItem("set-color")) : color;
     localStorage.setItem("set-color", setColor);
-    const currDifficulty = localStorage.getItem("computer-difficulty") !== null ? difficulty : JSON.parse(localStorage.getItem("computer-difficulty"));
-    localStorage.setItem("computer-difficulty", JSON.stringify(difficulty));
+    const currDifficulty = localStorage.getItem("practice-difficulty") !== null ? difficulty : JSON.parse(localStorage.getItem("practice-difficulty"));
+    localStorage.setItem("practice-difficulty", JSON.stringify(difficulty));
 
     const createVirtualBoard = () => {
         let board = [];
@@ -25,17 +26,8 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
             let row = [];
 
             for (let j = 0; j < 8; j++)
-                if (i === 1) row.push(-setColor * 1);
-                else if (i === 6) row.push(setColor * 1);
-                else if (i !== 7 && i !== 0) row.push(0);
-
-            if (color < 0) {
-                if (i === 0) row.push(-setColor * 2, -setColor * 3, -setColor * 4, -setColor * 6, -setColor * 5, -setColor * 4, -setColor * 3, -setColor * 2);
-                else if (i === 7) row.push(setColor * 2, setColor * 3, setColor * 4, setColor * 6, setColor * 5, setColor * 4, setColor * 3, setColor * 2);    
-            } else {
-                if (i === 0) row.push(-setColor * 2, -setColor * 3, -setColor * 4, -setColor * 5, -setColor * 6, -setColor * 4, -setColor * 3, -setColor * 2);
-                else if (i === 7) row.push(setColor * 2, setColor * 3, setColor * 4, setColor * 5, setColor * 6, setColor * 4, setColor * 3, setColor * 2);    
-            }         
+                row.push(0);
+                
             board.push(row);
         }
 
@@ -45,18 +37,18 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
     const boardRef = useRef(null);
     const squareRef = useRef(null);
     
-    const [currentMove, setCurrentMove] = useState(localStorage.getItem("computer-current-move") === null ? 1 : localStorage.getItem("computer-current-move"));
+    const [currentMove, setCurrentMove] = useState(localStorage.getItem("practice-current-move") === null ? 1 : localStorage.getItem("practice-current-move"));
     const [oldIdx, setOldIdx] = useState(null);
     const [possibleMoves, setPossibleMoves] = useState(null);
     const [activePiece, setActivePiece] = useState(null);
     const [dropPiecer, setActiveDrop] = useState(null);
-    const virtualBoard = localStorage.getItem("computer-board") === null ? createVirtualBoard() : JSON.parse(localStorage.getItem("computer-board"));
+    const [virtualBoard, setVirtualBoard] = useState(localStorage.getItem("practice-board") === null ? createVirtualBoard() : JSON.parse(localStorage.getItem("practice-board")));
     const [newVirtualBoard, setNewVirtualBoard] = useState(virtualBoard);
     const [previewMoves, setPreviewMoves] = useState([]);
     const [gameRunning, setGameRunning] = useState(true);
     const [pawnTransform, setPawnTransform] = useState(null);
-    const [prevMoves, setPrevMoves] = useState(localStorage.getItem("computer-prev-moves") !== null ? JSON.parse(localStorage.getItem("computer-prev-moves")) : []);
-    const [nextMoves, setNextMoves] = useState(localStorage.getItem("computer-next-moves") !== null ? JSON.parse(localStorage.getItem("computer-next-moves")) : []);
+    const [prevMoves, setPrevMoves] = useState(localStorage.getItem("practice-prev-moves") !== null ? JSON.parse(localStorage.getItem("practice-prev-moves")) : []);
+    const [nextMoves, setNextMoves] = useState(localStorage.getItem("practice-next-moves") !== null ? JSON.parse(localStorage.getItem("practice-next-moves")) : []);
 
     const previewVirtualBoard = useRef(virtualBoard);
     const squareElements = useRef(null);
@@ -99,6 +91,8 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
     const squareHeight = parseInt(boardRef.current?.style.height) / 8;
 
     console.log(squareWidth, squareHeight);
+    const player2Color = virtualBoard[0][0] > 0 ? "white" : "black";
+    const player1Color = player2Color === "white" ? "black" : "white";
 
     // Checking everytime prev/next button is pressed
     
@@ -129,8 +123,8 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
                     pieceCode: lastMove.oldPieceCode
                 }
             ];
-            localStorage.setItem("computer-prev-moves", JSON.stringify(prevMoves.slice(0, -1)));
-            localStorage.setItem("computer-next-moves", JSON.stringify(newNextMoves));
+            localStorage.setItem("practice-prev-moves", JSON.stringify(prevMoves.slice(0, -1)));
+            localStorage.setItem("practice-next-moves", JSON.stringify(newNextMoves));
 
             setPrevMoves(prevMoves.slice(0, -1));
             setNextMoves(newNextMoves);
@@ -146,19 +140,58 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
                 }
             ];
 
-            localStorage.setItem("computer-prev-moves", JSON.stringify(newPrevMoves));
-            localStorage.setItem("computer-next-moves", JSON.stringify(nextMoves.slice(0, -1)));
+            localStorage.setItem("practice-prev-moves", JSON.stringify(newPrevMoves));
+            localStorage.setItem("practice-next-moves", JSON.stringify(nextMoves.slice(0, -1)));
         
             setNextMoves(nextMoves.slice(0, -1));
             setPrevMoves(newPrevMoves);
         }
 
-        localStorage.setItem("computer-current-move", -currentMove);
-        localStorage.setItem("computer-board", JSON.stringify(currBoard));
+        localStorage.setItem("practice-current-move", -currentMove);
+        localStorage.setItem("practice-board", JSON.stringify(currBoard));
         
         setCurrentMove(-currentMove);
 
     }, [random]);
+
+    useEffect(() => {
+        if (typeof choosePiece !== "number") return;
+        let idx;
+        currSquareElement.current.forEach((square, squareIdx) => square.classList.contains('selected') ? idx = squareIdx : null);
+        if (!idx) return;
+        let cloneBoard = cloneDeep(newVirtualBoard);
+        cloneBoard[parseInt(idx / 8)][idx % 8] = choosePiece;
+        setNewVirtualBoard(cloneBoard);
+        previewVirtualBoard.current = cloneBoard;
+        console.log(cloneBoard);
+
+    }, [choosePiece]);
+
+    useEffect(() => {
+        if (deleteIcon === null) return;
+    
+        let idx;
+        currSquareElement.current.forEach((square, squareIdx) => square.classList.contains('selected') ? idx = squareIdx : null);
+        if (!idx) return;
+
+        let cloneBoard = cloneDeep(newVirtualBoard);
+        cloneBoard[parseInt(idx / 8)][idx % 8] = 0;
+        setNewVirtualBoard(cloneBoard);
+        previewVirtualBoard.current = cloneBoard;
+
+    }, [deleteIcon]);
+
+    const selectSquare = (square) => {
+        const currSelected = currSquareElement.current.find(squareElement => squareElement.classList.contains('selected'));
+        currSelected && currSelected.classList.remove('selected');
+        currSquareElement.current.forEach(currSquare => currSquare.classList.remove('selected'));
+        if (square !== currSelected)  square.classList.add('selected');
+    }
+
+    const isKing = (piece) => {
+        
+    }
+
 
     // Function for checking the check 
 
@@ -842,7 +875,7 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
         activePiece.style.zIndex = 'initial';
         console.log(previewVirtualBoard.current);
 
-        if (setColor !== parseInt(currentMove)) {
+        if (setColor != currentMove) {
             console.log('here', setColor, currentMove);
             return;
         }
@@ -857,13 +890,31 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
         let squaresVirtualBoard = [];
 
         previewVirtualBoard.current.forEach(row => {
-            row.forEach(square => squaresVirtualBoard.push(square));
+            row.forEach(square => {
+                squaresVirtualBoard.push(square);
+            });
         });
+
+        const kingPiece = squaresVirtualBoard.some(piece => {
+            if (pieceCode < 0) return piece === -6;
+            else return piece === 6;
+        });
+
+        const opponentKingPiece = squaresVirtualBoard.some(piece => {
+            if (pieceCode < 0) return piece === 6;
+            else return piece === -6;
+        
+        });
+
+        if (!kingPiece || !opponentKingPiece) return;
         
         let kingSquare;
 
         squaresVirtualBoard.forEach((square, totalIdx) => {
             const iconColor = square && square < 0 ? -1 : 1;
+
+            const x = parseInt(totalIdx / 8);
+            const y = parseInt(totalIdx % 8);
 
             if (square === setColor * 6 && !checkOppositeColor(iconColor, setColor)) kingSquare = totalIdx;
         });  
@@ -889,7 +940,8 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
                 pieceSound.pause();
                 pieceCapture.play();
             }
-  
+            
+            let newPiece = pieceCode;
             let skipComputerMove = false;
 
             // Piece being moved to new square
@@ -997,10 +1049,10 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
             const checkEqual = checkPat(currentMove, cloneVirtualBoard);
             console.log(checkEqual);
             if (checkEqual) setGameRunning(false);
-            localStorage.setItem("computer-current-move", -currentMove);
+            localStorage.setItem("practice-current-move", -currentMove);
             // setCurrentMove(-currentMove);
 
-            localStorage.setItem("computer-board", JSON.stringify(cloneVirtualBoard));
+            localStorage.setItem("practice-board", JSON.stringify(cloneVirtualBoard));
             setNewVirtualBoard(cloneVirtualBoard);
 
             if (!skipComputerMove) computerMove(cloneVirtualBoard);
@@ -1011,6 +1063,40 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
             
         } else if (sameIndex === undefined || check) previewVirtualBoard.current = oldBoard;
         
+    };
+
+    const getContainers = (elements, piece) => {
+
+        let currBoard = [];
+        console.log(piece);
+        newVirtualBoard.forEach(row => {
+            row.forEach(square => currBoard.push(square));
+        });
+
+        const mySquaresClone = currBoard.map((square, idx) => {
+            if (!checkOppositeColor(square, piece) && square !== 0) return square;
+        });
+
+        const mySquares = mySquaresClone.filter(square => square !== undefined);
+
+        console.log(mySquares);
+
+        const result = elements.filter((element, elementIdx) => {
+            let count = 0;
+            mySquares.forEach(square => {
+                if (square - 2 === elementIdx) count++;
+            });
+
+            console.log(count, elementIdx);
+
+            if (count < 1 && elementIdx === 3) {
+                console.log('queen not working')
+                return element;
+            }
+            else if (count < 2 && elementIdx !== 3) return element;
+        });
+
+        return result;
     };
 
     const computerMove = (newBoard) => {
@@ -1158,8 +1244,8 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
             cloneVirtualBoard[oldX][oldY] = 0;
             cloneVirtualBoard[newX][newY] = newPossibleMoves.piece;
 
-            localStorage.setItem("computer-current-move", setColor);
-            localStorage.setItem("computer-board", JSON.stringify(cloneVirtualBoard));
+            localStorage.setItem("practice-current-move", setColor);
+            localStorage.setItem("practice-board", JSON.stringify(cloneVirtualBoard));
 
             setNewVirtualBoard(cloneVirtualBoard);
             sound.play();
@@ -1171,32 +1257,34 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
 
     // Computer check if any piece is attacked and can defense it
 
-    // const isAttacked = (board, computerIdx, playerIdx) => {
-    //     const computerPiece = board[parseInt(computerIdx / 8)][computerIdx % 8];
-    //     const playerPiece = board[parseInt(playerIdx / 8)][playerIdx % 8];
+    const isAttacked = (board, computerIdx, playerIdx) => {
+        const computerPiece = board[parseInt(computerIdx / 8)][computerIdx % 8];
+        const playerPiece = board[parseInt(playerIdx / 8)][playerIdx % 8];
 
-    //     let squareBoard = [];
-    //     board.forEach(row => {
-    //         row.forEach(square => squareBoard.push(square));
-    //     });
+        let squareBoard = [];
+        board.forEach(row => {
+            row.forEach(square => squareBoard.push(square));
+        });
 
-    //     const playerPiecesUnfiltered = squareBoard.map((square, idx) => {
-    //         if (!checkOppositeColor(square, setColor) && square !== 0) return {
-    //             piece: square,
-    //             idx: idx
-    //         }
-    //     });
+        const playerPiecesUnfiltered = squareBoard.map((square, idx) => {
+            if (!checkOppositeColor(square, setColor) && square !== 0) return {
+                piece: square,
+                idx: idx
+            }
+        });
 
-    //     const playerPieces = playerPiecesUnfiltered.filter(square => square !== undefined);
+        const playerPieces = playerPiecesUnfiltered.filter(square => square !== undefined);
 
-    //     playerPieces.forEach(piece => {
+        playerPieces.forEach(piece => {
             
-    //     });
-    // };
+        });
+    };
 
     // Check if player move is defensed
 
     const isDefensed = (board, computerIdx, playerIdx) => {
+        const computerPiece = board[parseInt(computerIdx / 8)][computerIdx % 8];
+        const playerPiece = board[parseInt(playerIdx / 8)][playerIdx % 8];
         
         let squareBoard = [];
 
@@ -1209,8 +1297,6 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
                 piece: square,
                 idx: idx
             };
-
-            return undefined;
         });
 
         const playerPieces = playerPiecesUnfiltered.filter(square => square !== undefined);
@@ -1326,8 +1412,8 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
             cloneVirtualBoard[oldX][oldY] = 0;
             cloneVirtualBoard[newX][newY] = randomPossibleMoves.piece;
 
-            localStorage.setItem("computer-current-move", setColor);
-            localStorage.setItem("computer-board", JSON.stringify(cloneVirtualBoard));
+            localStorage.setItem("practice-current-move", setColor);
+            localStorage.setItem("practice-board", JSON.stringify(cloneVirtualBoard));
 
             setNewVirtualBoard(cloneVirtualBoard);
             sound.play();
@@ -1339,7 +1425,7 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
 
     useEffect(() => {
         if (setColor === -1) computerMoveFirst();
-    }, [setColor]);
+    }, []);
     
        
  
@@ -1353,6 +1439,7 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
         const currentY = idx % 8;
         const oldX = parseInt(oldIdx / 8);
         const oldY = oldIdx % 8;
+        const totalIdx = currentX * 8 + currentY + + (currentX % 2 !== 0 ? 1 : 0)
         newBoard[currentX][currentY] = transformPieceCode;
         newBoard[oldX][oldY] = 0;
         setNewVirtualBoard(newBoard);
@@ -1366,7 +1453,7 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
             elements: []
         });
 
-        localStorage.setItem("computer-board", JSON.stringify(newBoard));
+        localStorage.setItem("practice-board", JSON.stringify(newBoard));
     };
 
     const checkOppositeColor = (piece1, piece2) => {
@@ -1374,6 +1461,53 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
         else if (piece1 > 0 && piece2 < 0) return true;
         return false;
     }
+
+    const checkCheck = (kingSquare, kCode, isFromCheckMate = false) => {
+
+        console.log('lalalalaalaallapgdkkdfpgogjodjfgjdp', previewVirtualBoard.current, kingSquare);
+        console.log(kingSquare);
+        let currBoard = [];
+
+        previewVirtualBoard.current.forEach(row => {
+            row.forEach(square => {
+                currBoard.push(square);
+            });
+        });
+
+        const oppositeSquaresClone = currBoard.map((square, idx) => {
+            if (checkOppositeColor(kCode, square)) return {
+                pieceCode: square,
+                coords: idx
+            };
+        });
+
+        console.log(oppositeSquaresClone);
+
+        const oppositeSquares = oppositeSquaresClone.filter(square => square !== undefined);
+
+        console.log(oppositeSquares, kingSquare);
+
+        // Checking if king is attacked
+
+        const check = oppositeSquares.some(square => {
+            console.log(square.pieceCode, square.coords, previewVirtualBoard.current);
+            const possibleMovesCheck = getPossibleMoves(square.pieceCode, square.coords, previewVirtualBoard.current);
+            console.log(possibleMoves);
+            return possibleMovesCheck.some(currSquare => {
+                
+                console.log(currSquare, kingSquare);
+                return currSquare === kingSquare;
+            });
+        });
+
+        const oldBoard = cloneDeep(previewVirtualBoard.current);
+
+        if (check && !isFromCheckMate) checkCheckmate(kCode, newVirtualBoard);
+
+        previewVirtualBoard.current = oldBoard;
+
+        return check;
+    };
 
     const checkCheckOptimised = (kingSquare, kCode, isFromCheckMate = false) => {
 
@@ -1623,11 +1757,6 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
         return check;
     };
 
-    const legalBoard = (board, kCode) => {
-        return board.some(row => {
-            return row.some(cell => cell === kCode);
-        });
-    };
 
     // Checking the check-mate
 
@@ -1669,7 +1798,7 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
 
                 newBoard[currX][currY] = 0;
                 
-                if (newBoard != null && (newBoard[newX] != null) && (newBoard[newX][newY] != null)) {
+                if (newBoard && newBoard[newX] && newBoard[newX][newY]) {
                     if (newBoard[newX][newY] !== 0) {
                         const enemyPieceNumber = newBoard[newX][newY];
                         if (checkOppositeColor(enemyPieceNumber, square.pieceCode)) newBoard[newX][newY] = square.pieceCode;
@@ -1696,11 +1825,10 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
                 });
 
                 console.log(kingSquare);
-                const possibleBoard = legalBoard(newBoard, kCode);
                 
                 const newBoardCheck = checkCheckOptimised(kingSquare, kCode, true);
                 console.log(newBoardCheck, kingSquare, kCode);
-                if (!newBoardCheck && possibleBoard) checkMate = false;
+                if (!newBoardCheck) checkMate = false;
                 
             });
         });
@@ -1738,7 +1866,7 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
 
     const addSquares = () => {
         let squareComponents = [];
-        console.log(virtualBoard);
+       
         const board = newVirtualBoard.map((row, rowIdx) => {
 
             const rows = row.map((square, squareIdx) => {
@@ -1746,9 +1874,14 @@ export default function ComputerBoard({ color, prevButtons, random, difficulty }
                 const realIdx = rowIdx * 8 + squareIdx;
                
                 const squareComponent = 
-                    <div className={`square ${totalIdx % 2 === 0 ? "even" : ""}`} key={squareIdx} ref={ref => { 
-                        currSquareElement.current[realIdx] = ref;
-                    }}>
+                    <div 
+                        className={`square ${totalIdx % 2 === 0 ? "even" : ""}`} 
+                        key={squareIdx} 
+                        ref={ref => { 
+                            currSquareElement.current[realIdx] = ref;
+                        }}
+                        onClick={() => selectSquare(currSquareElement.current[realIdx])}
+                    >
                         {square !== 0 && pawnTransform?.idx === realIdx ? (
                             pawnTransform.elements.length > 0 ? (<div 
                                 className={`replace-container ${square < 0 ? -1 : 1} ${square}`}

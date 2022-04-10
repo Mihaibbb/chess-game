@@ -56,20 +56,20 @@ io.on('connection', socket => {
         if (!singleTime) return;
         console.log(globalRoom);
         console.log("sockets from this room", [...io.sockets.adapter.rooms.get(globalRoom)]);
-
+        io.emit("check_id", [...io.sockets.adapter.rooms.get(globalRoom)]);
         io.emit("players", [...io.sockets.adapter.rooms.get(globalRoom)].length);
         singleTime = false;
     });
-
-    
 
     socket.on("move-piece", (oldIdx, newIdx, pieceCode, sound) => {
         console.log(globalRoom, "this is global room");
         console.log('from move piece', oldIdx, newIdx, pieceCode);
         socket.broadcast.to(globalRoom).emit("send-piece", oldIdx, newIdx, pieceCode, sound);
-    })
+    });
 
-
+    socket.on("send-message", (message) => {
+        socket.broadcast.to(globalRoom).emit("recieve-message", message);
+    });
     
     // Disconnect
     socket.on('disconnect', () => {
