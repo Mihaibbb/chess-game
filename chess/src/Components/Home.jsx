@@ -13,7 +13,7 @@ import clickS from "../sounds/click.mp3";
 
 export default function Home({id, getColor, getDifficulty}) {
 
-    
+    // Update
     if (localStorage.length !== 0) {
         for (let i = 0, len = localStorage.length; i < len; i++) {
             const key = localStorage.key(i);

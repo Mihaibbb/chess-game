@@ -6,31 +6,35 @@
     justify-content: center;
     align-items: center;
     grid-template-columns: .9fr .1fr;
-    grid-template-rows: 1fr;
+    grid-template-rows: .98fr;
     padding: 1rem;
-    min-height: calc(100vh - 60px);
+    min-height: calc(100vh - 120px);
+    
 }
 
 .chat-container 
 {
-    height: 100%;
-   
-    margin-top: 1.5rem;
+    max-height: calc(100vh - 120px);
+    min-height: calc(100vh - 120px);
+  
     position: relative;
     border-radius: 1rem;
     border: 3px solid rgb(39,101,155);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-   
+    
+    
 }
 
 .send-message
 {
-    
-    border-radius: 1rem;
+    position: absolute;
+    bottom: 0px;
+    border-bottom-left-radius: .75rem;
+    border-bottom-right-radius: .75rem;
     width: 100%;
-    height: 60px;
+    height: 7.5%;
     border: none;
     outline: none;
     padding: 0 1rem .2rem;
@@ -38,8 +42,8 @@
     display: grid;
     justify-content: center;
     align-items: center;
-    grid-template-columns: .95fr .05fr;
-
+    grid-template-columns: .8fr .2fr;
+    
 }
 
 .message-input
@@ -96,22 +100,34 @@
 {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    
     gap: 1rem;
     align-items: flex-end;
-    padding-bottom: 2rem;
+    padding: 0rem .25rem;
+    overflow: auto;
+    
+    margin: 80px 0;
 }
 
 .message {
-    width: 100%;
-    max-width: 200px;
-    height: 35px;
-    background-color: #fff;
-    border-radius: 50px;
+    max-width: 10vw;
+    padding: 0 1.5rem;
+    min-height: 2vw;
+    border-radius: 1rem;
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    padding-left: 1rem;
+    word-break: break-all;
+}
+
+.message.white 
+{
+    background: rgb(164,199,233);
+}
+
+.message.black 
+{
+    background: rgb(39,101,155);
 }
 
 .message.opponent
@@ -119,6 +135,33 @@
     align-self: flex-start;
 }
 
+.message p 
+{
+    font-size: 1vw;
+    font-family: "Lato";
+    font-weight: 500;
+    color: #fff;
+    margin: .65rem auto;
+    line-height: 3vh;
+}
+
+.title-chat 
+{
+    position: absolute;
+    top: 0;
+    width: 100%;
+    background: royalblue;
+    border-top-left-radius: .75rem;
+    border-top-right-radius: .75rem;
+}
+
+.title-chat h2 
+{
+    text-align: center;
+    color: #fff;
+    font-family: "Lato";
+    font-weight: 400;
+}
 
 .numbers 
 {

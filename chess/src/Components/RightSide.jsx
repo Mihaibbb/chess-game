@@ -10,7 +10,7 @@ const HEIGHT = 85 * window.innerHeight / 100;
 
 export default function RightSide({clickButton, onlineGame, computerGame, practiceGame, empty, stopTimer, time, gameEnd, timer, players, color}) {
 
-    console.warn(empty);
+ 
     console.log(stopTimer);
     const [upTimerMinutes, setUpTimerMinutes] = useState(onlineGame ? (localStorage.getItem("online-opponent-minutes") ? localStorage.getItem("online-opponent-minutes") : time) : computerGame ? (localStorage.getItem("computer-opponent-minutes") ? localStorage.getItem("computer-opponent-minutes") : time) : (localStorage.getItem("opponent-minutes") ? localStorage.getItem("opponent-minutes") : time));
     const [upTimerSeconds, setUpTimerSeconds] = useState(onlineGame ? (localStorage.getItem("online-opponent-seconds") ? localStorage.getItem("online-opponent-seconds") : 0) : computerGame ? (localStorage.getItem("computer-opponent-seconds") ? localStorage.getItem("computer-opponent-seconds") : 0) : (localStorage.getItem("opponent-seconds") ? localStorage.getItem("opponent-seconds") : 0));
@@ -45,6 +45,7 @@ export default function RightSide({clickButton, onlineGame, computerGame, practi
             setDownTimerSeconds(downTime => downTime - 1);
             downTimeSec--;
         }
+
         if (onlineGame) {
             localStorage.setItem("online-player-minutes", downTimeMinutes);
             localStorage.setItem("online-player-seconds", downTimeSec);
@@ -81,15 +82,15 @@ export default function RightSide({clickButton, onlineGame, computerGame, practi
         }
 
         if (onlineGame) {
-            localStorage.setItem("online-opponent-minutes", downTimeMinutes);
-            localStorage.setItem("online-opponent-seconds", downTimeSec);
+            localStorage.setItem("online-opponent-minutes", upTimeMinutes);
+            localStorage.setItem("online-opponent-seconds", upTimeSec);
         }
         else if (computerGame) {
-            localStorage.setItem("computer-opponent-minutes", downTimeMinutes);
-            localStorage.setItem("computer-opponent-seconds", downTimeSec);
+            localStorage.setItem("computer-opponent-minutes", upTimeMinutes);
+            localStorage.setItem("computer-opponent-seconds", upTimeSec);
         } else {
-            localStorage.setItem("opponent-minutes", downTimeMinutes);
-            localStorage.setItem("opponent-seconds", downTimeSec);
+            localStorage.setItem("opponent-minutes", upTimeMinutes);
+            localStorage.setItem("opponent-seconds", upTimeSec);
         }
        
     };
@@ -114,7 +115,7 @@ export default function RightSide({clickButton, onlineGame, computerGame, practi
 
     return (
         <div className="right-side">
-            <div className={`timer opponent-timer ${color === 1 ? "black" : "white"} `}>
+            <div className={`timer opponent-timer ${parseInt(color) === 1 ? "black" : "white"} `}>
                 {!computerGame && !practiceGame && <h2>{upTimerMinutes < 10 ? `0${upTimerMinutes}` : upTimerMinutes} : {upTimerSeconds < 10 ? `0${upTimerSeconds}` : upTimerSeconds}</h2>}
             </div>
             <ResetButton computerGame={computerGame} />
@@ -122,7 +123,7 @@ export default function RightSide({clickButton, onlineGame, computerGame, practi
                 <PreviousButton icon={faArrowLeft} classDiv="prev-button" clickButton={clickButton}/>
                 <PreviousButton icon={faArrowRight} classDiv="next-button" clickButton={clickButton}/>
             </div>
-            <div className={`timer my-timer ${color === 1 ? "white" : "black"} `}>
+            <div className={`timer my-timer ${parseInt(color) === 1 ? "white" : "black"} `}>
                 {timer && <h2>{downTimerMinutes < 10 ? `0${downTimerMinutes}` : downTimerMinutes} : {downTimerSeconds < 10 ? `0${downTimerSeconds}` : downTimerSeconds}</h2>}
             </div>
         </div>

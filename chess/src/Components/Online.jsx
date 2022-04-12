@@ -13,6 +13,7 @@ import '../styles/home.css';
 export default function Online({ socket }) {
 
     const { id } = useParams();
+    //const gotColor = localStorage.getItem("online-player-color") ? parseInt(localStorage.getItem("online-player-color")) : 1; 
 
     if (id.length !== 20) window.location.href = "/";
 
@@ -44,7 +45,7 @@ export default function Online({ socket }) {
 
     socket.on("players", player => {
         console.log(player, id, socket.id, JSON.parse(localStorage.getItem("socket")));
-        const ownColor = localStorage.getItem("player") !== null ? localStorage.getItem("player") : player === 1 ? 1 : -1;
+        const ownColor = (localStorage.getItem("player") !== null ? parseInt(localStorage.getItem("player")) : player === 1 ? 1 : -1);
         setColor(ownColor);
         console.log(ownColor);
         if (parseInt(ownColor) === -1) {

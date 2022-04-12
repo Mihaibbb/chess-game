@@ -81,10 +81,12 @@ export default function LeftSide({practice, handlePieceChoose, handleDelete, col
 
             {online && 
                 <div className="chat-container">
-
+                    <div className="title-chat">
+                        <h2>Chat with opponent</h2>
+                    </div>
                     <div className="messages-container">
                         {messages.length > 0 && messages.map((message, idx) => (
-                            <div className={`message ${message.type === "player" ? "own" : "opponent"}`} key={idx}>
+                            <div className={`message ${message.type === "player" ? "own" : "opponent"} ${parseInt(color) === 1 && message.type === "player" ? "white" : parseInt(color) === 1 && message.type === "opponent" ? "black" : parseInt(color) === -1 && message.type === "player" ? "black" : parseInt(color) === -1 && message.type === "opponent" ? "white" : null}`} key={idx}>
                                 <p>{message.message}</p>
                             </div>
                         ))}
